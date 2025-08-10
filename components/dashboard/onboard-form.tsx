@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAccount, useReadContract } from "wagmi";
 import { createPublicClient, erc20Abi, formatUnits, http, parseUnits } from "viem";
-import { CONTRACT_ADDRESSES, NULL_ADDRESS, CHAIN_ID, ValidChainType } from "@/lib/constants";
+import { CONTRACT_ADDRESSES, NULL_ADDRESS, ValidChainType } from "@/lib/constants";
 import { getChainId, waitForTransactionReceipt, writeContract } from "wagmi/actions";
 import { config } from "@/lib/wagmi-config";
 import { USER_FACTORY_ABI } from "@/abi/user-factory";
@@ -20,18 +20,26 @@ import { BondLoadingModal } from "@/components/bond-loading-modal";
 import { ArrowRight, EclipseIcon as Ethereum, DollarSign, Loader2 } from "lucide-react";
 import { useChainId } from "wagmi";
 
-
 export function OnBoardForm({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { address } = useAccount();
   const [formData, setFormData] = useState({ user2: "", amount: "" });
   const [isLoading, setIsLoading] = useState(false);
   const chainId = useChainId();
 
+  // Validate that current chain is supported
+  const isChainSupported = chainId && CONTRACT_ADDRESSES[chainId as ValidChainType];
+
+  // Get contract addresses safely
+  const contractAddresses = isChainSupported ? CONTRACT_ADDRESSES[chainId as ValidChainType] : null;
+
   const { data: approvedAmount } = useReadContract({
     abi: erc20Abi,
-    address: CONTRACT_ADDRESSES[chainId as ValidChainType].DEFAULT_ASSET_ADDRESS_ERC20 as `0x${string}`,
+    address: contractAddresses?.DEFAULT_ASSET_ADDRESS_ERC20 as `0x${string}`,
     functionName: "allowance",
-    args: [address ?? NULL_ADDRESS, CONTRACT_ADDRESSES[CHAIN_ID].USER_FACTORY],
+    args: [address ?? NULL_ADDRESS, contractAddresses?.USER_FACTORY as `0x${string}`],
+    query: {
+      enabled: !!contractAddresses && !!address
+    }
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,20 +53,30 @@ export function OnBoardForm({ isOpen, onClose }: { isOpen: boolean; onClose: () 
         toast.error("No address found");
         throw new Error("No address found");
       }
-      const chainId = getChainId(config)
-      console.log("chainIasdfasdfdd",chainId)
-      console.log("USR FACTORY", CONTRACT_ADDRESSES[chainId as ValidChainType]?.USER_FACTORY)
+
+      const currentChainId = getChainId(config);
+
+      // Validate chain support
+      if (!CONTRACT_ADDRESSES[currentChainId as ValidChainType]) {
+        toast.error(`Chain ID ${currentChainId} is not supported`);
+        throw new Error(`Chain ID ${currentChainId} is not supported`);
+      }
+
+      const addresses = CONTRACT_ADDRESSES[currentChainId as ValidChainType];
+
+      console.log("chainId", currentChainId);
+      console.log("USER FACTORY", addresses.USER_FACTORY);
+
       if (!createUser) {
-       
         const hash = await writeContract(config, {
           abi: USER_FACTORY_ABI,
-          address: CONTRACT_ADDRESSES[chainId as ValidChainType].USER_FACTORY,
+          address: addresses.USER_FACTORY,
           functionName: "createUser",
           args: [address],
         });
         await waitForTransactionReceipt(config, { hash });
-        showTransactionToast(hash, chainId as ValidChainType);
-        return; // We’ll handle closing in the finally block
+        showTransactionToast(hash, currentChainId as ValidChainType);
+        return; // We'll handle closing in the finally block
       }
 
       let finalAddress = formData.user2;
@@ -78,39 +96,48 @@ export function OnBoardForm({ isOpen, onClose }: { isOpen: boolean; onClose: () 
       }
 
       const inputAmountParsed = parseFloat(formData.amount);
-      if (isNaN(inputAmountParsed)) {
-        toast.error("Invalid amount, Please enter a valid number.");
+      if (isNaN(inputAmountParsed) || inputAmountParsed <= 0) {
+        toast.error("Invalid amount. Please enter a valid number greater than 0.");
         return;
       }
 
-      const approvedAmountFormatted = Number(
-        formatUnits(approvedAmount || BigInt(0), 6)
-      );
+      // Safely handle approvedAmount
+      const approvedAmountFormatted = approvedAmount
+        ? Number(formatUnits(approvedAmount, 6))
+        : 0;
 
-      if (approvedAmountFormatted < inputAmountParsed) {
+      console.log({ inputAmountParsed, approvedAmountFormatted });
 
-        const approvalHash = await writeContract(config, {
-          abi: erc20Abi,
-          address: CONTRACT_ADDRESSES[chainId as ValidChainType].DEFAULT_ASSET_ADDRESS_ERC20 as `0x${string}`,
-          functionName: "approve",
-          args: [
-            CONTRACT_ADDRESSES[chainId as ValidChainType].USER_FACTORY,
-            parseUnits(inputAmountParsed.toString(), 6),
-          ],
-        });
-        await waitForTransactionReceipt(config, { hash: approvalHash });
-      }
+      // Convert to BigInt safely
+      const amountInWei = parseUnits(inputAmountParsed.toString(), 6);
+
+      const approvalHash = await writeContract(config, {
+        abi: erc20Abi,
+        address: addresses.DEFAULT_ASSET_ADDRESS_ERC20 as `0x${string}`,
+        functionName: "approve",
+        args: [addresses.USER_FACTORY, amountInWei],
+      });
+
+      await waitForTransactionReceipt(config, { hash: approvalHash });
+
+      console.log("Creating bond with:", {
+        user1: address,
+        user2: finalAddress,
+        amount: amountInWei
+      });
 
       const hash = await createBond(
         address,
         finalAddress as `0x${string}`,
-        parseUnits(formData.amount, 6)
+        amountInWei
       );
+
       await waitForTransactionReceipt(config, { hash });
-      showTransactionToast(hash, chainId as ValidChainType);
+      showTransactionToast(hash, currentChainId as ValidChainType);
+
     } catch (error) {
-      toast.error((error as Error).message);
-      console.error(error);
+      console.error("Error in handleSubmit:", error);
+      toast.error((error as Error).message || "An error occurred");
     } finally {
       setIsLoading(false); // ✅ Stop the loading modal
       onClose();           // ✅ Close the OnBoard modal regardless of success or error
@@ -118,6 +145,39 @@ export function OnBoardForm({ isOpen, onClose }: { isOpen: boolean; onClose: () 
   };
 
   if (!isOpen) return null;
+
+  // Show error if chain is not supported
+  if (!isChainSupported) {
+    return (
+      <AnimatePresence>
+        <motion.div
+          className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-md"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <motion.div
+            className="w-full max-w-lg p-8 rounded-2xl backdrop-blur-xl bg-white/90 border border-white/20 shadow-2xl mx-4"
+            initial={{ y: 20 }}
+            animate={{ y: 0 }}
+            exit={{ y: -20 }}
+          >
+            <div className="text-center space-y-4">
+              <h2 className="text-2xl font-bold text-red-600">
+                Unsupported Chain
+              </h2>
+              <p className="text-muted-foreground">
+                Chain ID {chainId} is not supported. Please switch to a supported network.
+              </p>
+              <Button onClick={onClose} variant="outline">
+                Close
+              </Button>
+            </div>
+          </motion.div>
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
 
   return (
     <AnimatePresence>
