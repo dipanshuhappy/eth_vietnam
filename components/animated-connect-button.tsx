@@ -5,7 +5,7 @@ import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ConnectButton } from "@rainbow-me/rainbowkit"
+import { aonnectButton } from "./connect-button"
 import { X } from "lucide-react"
 
 const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), { ssr: false })
@@ -34,12 +34,12 @@ const AnimatedWalletConnect = ({ isOpen, onClose }: { isOpen: boolean; onClose: 
         exit={{ opacity: 0 }}
       >
         <motion.div className="relative w-full max-w-lg bg-gradient-to-r from-[#cdffd8] to-[#94b9ff] rounded-lg shadow-lg p-6">
-            <div className="p-8 text-center w-full flex flex-col items-center justify-center">
-              <h1 className="text-4xl font-bold text-gray-800 mb-8">Connect Wallet</h1>
-              <div className="flex justify-center">
-                <ConnectButton label="Connect Now" />
-              </div>
+          <div className="p-8 text-center w-full flex flex-col items-center justify-center">
+            <h1 className="text-4xl font-bold text-gray-800 mb-8">Connect Wallet</h1>
+            <div className="flex justify-center">
+              <ConnectButton />
             </div>
+          </div>
         </motion.div>
       </motion.div>
     </AnimatePresence>

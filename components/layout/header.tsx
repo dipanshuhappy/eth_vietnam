@@ -5,7 +5,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { Menu, X, Trophy } from "lucide-react"
-import { ConnectButton } from "@rainbow-me/rainbowkit"
+import { ConnectButton } from "../connect-button"
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -17,15 +17,15 @@ export default function Header() {
         <div className="flex justify-between items-center h-full">
           {/* Logo Section */}
           <div className="flex items-center space-x-2 sm:space-x-3">
-            <Image 
-              src="/unn_finance.webp" 
-              width={40} 
-              height={40} 
+            <Image
+              src="/unn_finance.webp"
+              width={40}
+              height={40}
               alt="Trust Protocol"
               className="w-8 h-8 sm:w-10 sm:h-10"
             />
-            <Link 
-              href="/" 
+            <Link
+              href="/"
               className="text-xl sm:text-2xl font-serif font-bold tracking-tighter text-primary"
             >
               TRUST
@@ -62,18 +62,18 @@ export default function Header() {
           {/* Right Section */}
           <div className="flex items-center gap-4">
             <div className="hidden sm:block">
-              <ConnectButton 
-                accountStatus={{ 
+              <ConnectButton
+                accountStatus={{
                   smallScreen: 'avatar',
-                  largeScreen: 'address' 
+                  largeScreen: 'address'
                 }}
                 chainStatus="icon"
               />
             </div>
-            
+
             {/* Mobile Menu Button */}
-            <button 
-              onClick={toggleMenu} 
+            <button
+              onClick={toggleMenu}
               className="lg:hidden p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all"
               aria-label="Toggle navigation menu"
             >
@@ -128,10 +128,10 @@ export default function Header() {
               </a>
             ))}
           </div>
-          
+
           <div className="mt-4 border-t border-white/20 pt-4">
             <div className="sm:hidden">
-              <ConnectButton 
+              <ConnectButton
                 accountStatus="avatar"
                 chainStatus="icon"
                 showBalance={false}
