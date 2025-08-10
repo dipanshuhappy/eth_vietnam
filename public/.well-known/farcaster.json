@@ -1,0 +1,25 @@
+{
+  "miniapp": {
+    "version": "1",
+    "name": "Trust Protocol",
+    "iconUrl": "https://your-domain.com/trust_hero.svg",
+    "homeUrl": "https://your-domain.com",
+    "imageUrl": "https://your-domain.com/trust_hero.svg",
+    "buttonTitle": "Launch Trust Protocol",
+    "splashImageUrl": "https://your-domain.com/trust_hero.svg",
+    "splashBackgroundColor": "#cdffd8",
+    "description": "Trust protocol is an open-source layer zero for decentralized trust infrastructure",
+    "subtitle": "Programmable Onchain Trust Primitive",
+    "primaryCategory": "defi",
+    "tags": [
+      "trust",
+      "defi",
+      "bonds",
+      "reputation",
+      "ethereum"
+    ],
+    "ogTitle": "Trust Protocol - Programmable Onchain Trust Primitive",
+    "ogDescription": "Trust protocol is an open-source layer zero for decentralized trust infrastructure",
+    "ogImageUrl": "https://your-domain.com/trust_hero.svg"
+  }
+}
